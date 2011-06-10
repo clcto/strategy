@@ -19,7 +19,7 @@ public class GameMap extends View
 
    private Matrix transformation = new Matrix();
    
-   private ArrayList<Tile> possible_tiles = new ArrayList<Tile>();
+   private Tile selected;
 
    public GameMap( Context context, int num_row, int num_col )
    {
@@ -82,8 +82,6 @@ public class GameMap extends View
 
    public Tile getTile( float s_x, float s_y )
    {
-      possible_tiles.clear();
-
       Tile best = null;
       double min_dist = Double.MAX_VALUE;
 
@@ -108,9 +106,16 @@ public class GameMap extends View
       @Override
       public boolean onSingleTapConfirmed( MotionEvent e )
       {
-         Tile t = getTile( e.getX(), e.getY() );
-         if( t != null )
+         if( selected != null )
+            selected.unselect();
+
+         selected = getTile( e.getX(), e.getY() );
+         if( selected != null )
+         {
+            selected.select();
             System.err.println( t.getRow() + " " + t.getCol() );
+         }
+
          return true;
       }
 
