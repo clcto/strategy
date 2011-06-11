@@ -2,11 +2,9 @@ package com.clcto.strategy;
 
 import android.graphics.*;
 
-public class Tile
+public class Tile 
 {
       // static --------------------------
-   public static int radius = 20;
-
    private static Path drawPath;
 
    static
@@ -25,8 +23,10 @@ public class Tile
 
       
    private final int row, col;
-   private final double x, y;
+   private final float x, y;
    private Paint brush;
+
+   private int fill_color = 0;
 
    private Matrix transformation = new Matrix();
 
@@ -44,20 +44,20 @@ public class Tile
 
       if( col % 2 == 0 )
       {
-         x = col * 3.0 / 2.0 + 1;
-         y = (row + 1) * Math.sqrt( 3 );
+         x = (float) (col * 3.0f / 2.0 + 1);
+         y = (float) ((row + 1) * Math.sqrt( 3 ));
       }
       else
       {
-         x = 2.5 + 3 * (col - 1) / 2.0;
-         y = ( 0.5 + row ) * Math.sqrt( 3 );
+         x = (float) (2.5 + 3 * (col - 1) / 2.0);
+         y = (float) (( 0.5 + row ) * Math.sqrt( 3 ));
       }
+
    }
 
-   public void gameDraw( Canvas canvas )
+   public void draw( Canvas canvas )
    {
       canvas.save();
-      canvas.scale( radius, radius );
       canvas.translate( (float) x, (float) y );
    
       brush.setColor( 0xFF000000 );
@@ -65,17 +65,17 @@ public class Tile
 
       canvas.drawPath( drawPath, brush );
 
-      Matrix temp = new Matrix();
-      canvas.getMatrix( temp );
-      temp.invert( transformation );
+      brush.setColor( fill_color );
+      brush.setStyle( Paint.Style.FILL );
+
+      canvas.drawPath( drawPath, brush );
 
       canvas.restore();
    }
 
-   public double distance( float screen_x, float screen_y )
+   public double distance( float map_x, float map_y )
    {
-      float[] point = { screen_x, screen_y };
-      transformation.mapPoints( point );
+      float[] point = { map_x - x, map_y - y };
 
       return PointF.length( point[0], point[1] );
    }
@@ -89,4 +89,15 @@ public class Tile
    {
       return col;
    }
+
+      // color is in the form that Brush.setColor() uses:
+      //  > first byte is   opacity
+      //  > second byte is  red
+      //  > third byte is   green
+      //  > fourth byte is  blue
+   public void setFill( int color )
+   {
+      fill_color = color;
+   }
+   
 }

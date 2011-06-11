@@ -11,7 +11,7 @@ public class DisplayManager extends RelativeLayout
    public DisplayManager( Context c )
    {
       super( c );
-      map = new GameMap( c, 2, 2 );
+      map = new GameMap( c, 70, 40 );
       RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams( 
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT );

@@ -15,7 +15,7 @@ public class GameMap extends View
 
       // the xy map coordinate that is the top left of the screen
    private PointF translation = new PointF( 0, 0 );
-   private float scale = 1;
+   private float scale = 20;
 
    private Matrix transformation = new Matrix();
    
@@ -52,7 +52,7 @@ public class GameMap extends View
 
       for( ArrayList<Tile> list : board )
          for( Tile t : list )
-            t.gameDraw( canvas );
+            t.draw( canvas );
 
       canvas.getMatrix( transformation );
    }
@@ -85,12 +85,16 @@ public class GameMap extends View
       Tile best = null;
       double min_dist = Double.MAX_VALUE;
 
+      float m_x = (s_x + translation.x) / scale;
+      float m_y = (s_y + translation.y) / scale;
+      
+
       for( ArrayList<Tile> list : board )
          for( Tile t : list )
          {
-            double dist = t.distance( s_x, s_y );
+            double dist = t.distance( m_x, m_y );
 
-            if( dist < min_dist )
+            if( dist < Tile.RADIUS && dist < min_dist )
             {
                min_dist = dist;
                best = t;
@@ -106,16 +110,17 @@ public class GameMap extends View
       @Override
       public boolean onSingleTapConfirmed( MotionEvent e )
       {
+         /*
          if( selected != null )
-            selected.unselect();
-
+            selected.setFill( 0x00000000 );
+         */
+         
          selected = getTile( e.getX(), e.getY() );
          if( selected != null )
-         {
-            selected.select();
-            System.err.println( t.getRow() + " " + t.getCol() );
-         }
-
+            selected.setFill( 0xFFCC1111 );
+         
+         invalidate();
+          
          return true;
       }
 
@@ -143,7 +148,7 @@ public class GameMap extends View
       public boolean onScale( ScaleGestureDetector sgd )
       {
          scale *= sgd.getScaleFactor();
-         scale = Math.max( 0.2f, Math.min( scale, 2f ) );
+         scale = Math.max( 5, Math.min( scale, 50 ) );
 
          return true;
       }
