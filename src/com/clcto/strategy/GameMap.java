@@ -7,7 +7,7 @@ import android.view.*;
 
 public class GameMap extends View
 {
-   private ArrayList<ArrayList<Tile>> board;
+   private Tile[][] board;
    private GameMap.TouchListener touch_listener;
    private GameMap.ScaleListener scale_listener;
    private GestureDetector gestures;
@@ -24,15 +24,13 @@ public class GameMap extends View
    public GameMap( Context context, int num_row, int num_col )
    {
       super( context );
-      board = new ArrayList< ArrayList<Tile> >();
+      board = new Tile[ num_row + 2 ][ num_col + 2 ];
 
-      for( int row = 0; row < num_row; ++row )
-      {
-         ArrayList<Tile> row_list = new ArrayList<Tile>();
-         board.add( row_list );
-         for( int col = 0; col < num_col; ++col )
-            row_list.add( new Tile( row, col ) ); 
-      }
+         // since we have a row of 'nulls' on each edge
+         // we use   ` <= '
+      for( int row = 1; row <= num_row; ++row )
+         for( int col = 1; col <= num_col; ++col )
+            board[ row ][ col ] = new Tile( this, row, col );
 
       touch_listener = new GameMap.TouchListener();
       gestures = new GestureDetector( 
@@ -50,9 +48,13 @@ public class GameMap extends View
       canvas.translate( - translation.x, - translation.y );
       canvas.scale( scale, scale );
 
-      for( ArrayList<Tile> list : board )
+      for( Tile[] list : board )
          for( Tile t : list )
+         {
+            if( t == null )
+               continue;
             t.draw( canvas );
+         }
 
       canvas.getMatrix( transformation );
    }
@@ -89,12 +91,15 @@ public class GameMap extends View
       float m_y = (s_y + translation.y) / scale;
       
 
-      for( ArrayList<Tile> list : board )
+      for( Tile[] list : board )
          for( Tile t : list )
          {
+            if( t == null )
+               continue;
+
             double dist = t.distance( m_x, m_y );
 
-            if( dist < Tile.RADIUS && dist < min_dist )
+            if( dist < 1 && dist < min_dist )
             {
                min_dist = dist;
                best = t;
@@ -102,6 +107,29 @@ public class GameMap extends View
          }
 
       return best;
+   }
+
+   public Tile[] getSurrounding( int row, int col )
+   {
+      Tile[] surrounding = new Tile[6]; // hexagons have 6 neighbors
+
+      surrounding[0] = board[ row - 1 ][ col     ];
+      surrounding[1] = board[ row + 1 ][ col     ];
+      surrounding[2] = board[ row     ][ col - 1 ];
+      surrounding[3] = board[ row     ][ col + 1 ];
+
+      if( col % 2 == 0 )
+      {
+         surrounding[4] = board[ row + 1 ][ col - 1 ];
+         surrounding[5] = board[ row + 1 ][ col + 1 ];
+      }
+      else
+      {
+         surrounding[4] = board[ row - 1 ][ col - 1 ];
+         surrounding[5] = board[ row - 1 ][ col + 1 ];
+      }
+
+      return surrounding;
    }
 
    private class TouchListener extends 
@@ -117,7 +145,12 @@ public class GameMap extends View
          
          selected = getTile( e.getX(), e.getY() );
          if( selected != null )
-            selected.setFill( 0xFFCC1111 );
+         {
+            HashSet<Tile> moves = selected.getPossibleMoves( 3 );
+            //Tile[] moves = getSurrounding( selected.getRow(), selected.getCol() );
+            for( Tile t : moves )
+               t.setFill( 0xFFCC1111 );
+         }
          
          invalidate();
           
