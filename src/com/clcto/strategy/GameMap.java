@@ -20,10 +20,12 @@ public class GameMap extends View
    private Matrix transformation = new Matrix();
    
    private Tile selected;
+   private Context context;
 
    public GameMap( Context context, int num_row, int num_col )
    {
       super( context );
+      this.context = context;
       board = new Tile[ num_row + 2 ][ num_col + 2 ];
 
          // since we have a row of 'nulls' on each edge
@@ -82,30 +84,49 @@ public class GameMap extends View
       return true;
    }
 
-   public Tile getTile( float s_x, float s_y )
+   public Tile getTileByIndex( int r, int c )
    {
-      Tile best = null;
-      double min_dist = Double.MAX_VALUE;
+      if( r < 0 || c < 0 || r > board.length || c > board[0].length )
+         return null;
+      else
+         return board[r][c];
+   }
 
+   public Tile getTileByPixel( float s_x, float s_y )
+   {
       float m_x = (s_x + translation.x) / scale;
       float m_y = (s_y + translation.y) / scale;
       
+      int rect_col = (int) ( (m_x - 0.25) / 1.5 );
+      int rect_row = (int) ( 2 * m_y / Tile.SQRT_3 );
 
-      for( Tile[] list : board )
-         for( Tile t : list )
+         // for each r,c in rect grid, the correct
+         // could be one of 3 tiles
+      Tile[] possible = new Tile[ 3 ];
+
+      int row = rect_row / 2;
+      if( rect_col % 2 == 0 && rect_row % 2 == 0 ) 
+         --row;
+
+      possible[0] = getTileByIndex( row, rect_col );
+      possible[1] = getTileByIndex( row, rect_col - 1 );
+      possible[2] = getTileByIndex( row, rect_col + 1 );
+
+      double min_dist = Double.MAX_VALUE;
+      Tile best = null;
+      for( Tile t : possible )
+      {
+         if( t == null )
+            continue;
+
+         double dist = t.distance( m_x, m_y );
+
+         if( dist < 1 && dist < min_dist )
          {
-            if( t == null )
-               continue;
-
-            double dist = t.distance( m_x, m_y );
-
-            if( dist < 1 && dist < min_dist )
-            {
-               min_dist = dist;
-               best = t;
-            }
+            min_dist = dist;
+            best = t;
          }
-
+      }
       return best;
    }
 
@@ -138,18 +159,16 @@ public class GameMap extends View
       @Override
       public boolean onSingleTapConfirmed( MotionEvent e )
       {
-         /*
-         if( selected != null )
-            selected.setFill( 0x00000000 );
-         */
-         
-         selected = getTile( e.getX(), e.getY() );
+         selected = getTileByPixel( e.getX(), e.getY() );
          if( selected != null )
          {
-            HashSet<Tile> moves = selected.getPossibleMoves( 3 );
+            selected.setFill( 0x99000000 );
+            /*
+            HashSet<Tile> moves = selected.getPossibleMoves( 4 );
             //Tile[] moves = getSurrounding( selected.getRow(), selected.getCol() );
             for( Tile t : moves )
-               t.setFill( 0xFFCC1111 );
+               t.setFill( 0x55CC1111 );
+               */
          }
          
          invalidate();

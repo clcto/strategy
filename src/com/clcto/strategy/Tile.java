@@ -1,13 +1,21 @@
 package com.clcto.strategy;
 
 import android.graphics.*;
+import android.graphics.drawable.Drawable;
+import android.content.Context;
 import java.util.HashSet;
 import java.util.Random;
 
 public class Tile 
 {
       // static --------------------------
+   public static final double SQRT_3 = Math.sqrt( 3 );
    private static Path drawPath;
+   private static Drawable allBackgrounds[][];
+   private static int NUM_TYPES = 2,
+                      NUM_GRAPHICS_PER_TYPE = 3;
+   private static int FIELD = 0,
+                      SAND  = 1;
 
    static
    {
@@ -21,6 +29,29 @@ public class Tile
                           (float) Math.sin( ang ) );
 
       drawPath.close();
+
+      allBackgrounds = null;
+   }
+
+   private static void createBackgrounds( Context c )
+   {
+      if( allBackgrounds == null )
+      {
+         allBackgrounds = new Drawable[ NUM_TYPES ][ NUM_GRAPHICS_PER_TYPE ];
+
+         allBackgrounds[ FIELD ][ 0 ] = c.getResources().getDrawable( R.drawable.field_1 );
+         allBackgrounds[ FIELD ][ 1 ] = c.getResources().getDrawable( R.drawable.field_2 );
+         allBackgrounds[ FIELD ][ 2 ] = c.getResources().getDrawable( R.drawable.field_3 );
+         allBackgrounds[ SAND ][ 0 ] = c.getResources().getDrawable( R.drawable.sand_1 );
+         allBackgrounds[ SAND ][ 1 ] = c.getResources().getDrawable( R.drawable.sand_2 );
+         allBackgrounds[ SAND ][ 2 ] = c.getResources().getDrawable( R.drawable.sand_3 );
+         for( Drawable[] list : allBackgrounds )
+            for( Drawable d : list )
+            {
+               if( d != null )
+                  d.setBounds( -1, -1, 1, 1 );
+            }
+      }
    }
 
       
@@ -32,6 +63,8 @@ public class Tile
    private GameMap map;
    private int mostMovePoints;
    private int moveCost = 1;
+   private Drawable background;
+
 
       // constructor using row and col index
    public Tile( GameMap m, int r, int c )
@@ -39,6 +72,8 @@ public class Tile
       map = m;
       row = r;
       col = c;
+
+      createBackgrounds( map.getContext() );
 
       brush = new Paint();
       brush.setDither( true );
@@ -49,29 +84,39 @@ public class Tile
       if( col % 2 == 0 )
       {
          x = (float) (col * 3.0f / 2.0 + 1);
-         y = (float) ((row + 1) * Math.sqrt( 3 ));
+         y = (float) ((row + 1) * SQRT_3);
       }
       else
       {
          x = (float) (2.5 + 3 * (col - 1) / 2.0);
-         y = (float) (( 0.5 + row ) * Math.sqrt( 3 ));
+         y = (float) (( 0.5 + row ) * SQRT_3);
       }
       
       mostMovePoints = -1;
 
+         // this stuff is just me playing, seeing how things work.
+         // {
       Random rand = new Random();
-      moveCost = rand.nextInt( 3 ) + 1;
+      moveCost = rand.nextInt( NUM_TYPES ) + 1;
+      int img = rand.nextInt( NUM_GRAPHICS_PER_TYPE );
+      background = allBackgrounds[ moveCost - 1 ][ img ];
+         // }
+
    }
 
    public void draw( Canvas canvas )
    {
       canvas.save();
       canvas.translate( (float) x, (float) y );
+
+      if( background != null )
+         background.draw( canvas );
    
+      /*
       brush.setColor( 0xFF000000 );
       brush.setStyle( Paint.Style.STROKE );
-
       canvas.drawPath( drawPath, brush );
+      */
 
       brush.setColor( fill_color );
       brush.setStyle( Paint.Style.FILL );
@@ -134,6 +179,17 @@ public class Tile
       System.err.println( row + ", " + col );
       mostMovePoints = ptsAfter;
       set.add( this );
+
+      for( Tile t : map.getSurrounding( row, col ) )
+      {
+         if( t == null )
+            continue;
+         
+            // I am going to have to redo the whole tree rooted
+            // here anyway, so lets just quit now
+         if( t.mostMovePoints > ptsBefore )
+            return;
+      }
 
       for( Tile t : map.getSurrounding( row, col ) )
       {
