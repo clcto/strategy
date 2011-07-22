@@ -5,6 +5,8 @@ import android.graphics.drawable.Drawable;
 import android.content.Context;
 import java.util.HashSet;
 import java.util.Random;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Tile 
 {
@@ -153,7 +155,7 @@ public class Tile
       fill_color = color;
    }
 
-   public HashSet<Tile> getPossibleMoves( int movePts )
+   public HashSet<Tile> getPossibleMoves()
    {
       HashSet<Tile> set = new HashSet<Tile>();
          
@@ -161,7 +163,7 @@ public class Tile
          // move into a new tile. since we are already in
          // this tile, we do not want to subtract its cost
          // which getPossibleMoves( HashSet<Tile>, int ) does
-      getPossibleMoves( set, movePts + moveCost );
+      getPossibleMoves( set, 4 + moveCost );
 
       for( Tile t : set )
          t.clearMovePoints();
@@ -176,7 +178,6 @@ public class Tile
       if( ptsAfter < 0 ) return; // unable to enter
       if( ptsAfter <= mostMovePoints ) return;
 
-      System.err.println( row + ", " + col );
       mostMovePoints = ptsAfter;
       set.add( this );
 
@@ -200,9 +201,69 @@ public class Tile
       }
    }
 
+   public List<Tile> findPath( Tile dest )
+   {
+      return findPath( dest, 4 + moveCost );
+   }
+
+   boolean findVisitted;
+   private List<Tile> findPath( Tile dest, int ptsBefore )
+   {
+      System.err.println( this );
+      int ptsAfter = ptsBefore - moveCost;
+
+      if( findVisitted ) return null;
+      if( ptsAfter < 0 ) return null;
+      if( ptsAfter == 0 && ! this.equals( dest ) ) return null;
+
+      if( this.equals( dest ) )
+         return new ArrayList<Tile>();
+
+      findVisitted = true;
+
+         // this is y - dest.y because 'y' is in screen coordinates,
+         // and angle is the typical 0 along positive x-axis, increasing CCW
+      double angle = Math.toDegrees( Math.atan2( y - dest.y, dest.x - x ) );
+      if( angle < 0 ) angle += 360;
+      int firstGuess = (int) angle / 60;
+      boolean startCCW = Math.abs( (int) angle / 30 ) % 2 == 0;
+     
+      Tile[] surrounding = map.getSurrounding( row, col );
+      List retList = surrounding[ firstGuess ].findPath( dest, ptsAfter );
+      if( retList == null ) System.err.println( " fail." );
+      for( int n = 0; retList == null && n < 5; ++n )
+      {
+         int guess;
+         if( startCCW )
+            guess = firstGuess + (n/2 + 1)*(int)Math.pow( -1, n+1 );
+         else
+            guess = firstGuess + (n/2 + 1)*(int)Math.pow( -1, n );
+         
+         if( guess < 0 )
+            guess += 6;
+         else if( guess >= 6 )
+            guess -= 6;
+
+         System.err.println( guess );
+         
+         retList = surrounding[ guess ].findPath( dest, ptsAfter ); 
+         if( retList == null ) System.err.println( " fail." );
+      }
+
+      if( retList != null )
+         retList.add( this );
+
+      findVisitted = false;
+
+      if( retList == null )
+      System.err.println( "no path found" );
+
+      return retList;
+   }
+
    public int hashCode()
    {
-      return row * 7 + col * 2;
+      return row * 7 + col;
    }
 
    private void clearMovePoints()
@@ -213,6 +274,11 @@ public class Tile
    public boolean equals( Tile t )
    {
       return row == t.row && col == t.col;
+   } 
+
+   public String toString()
+   {
+      return "Tile @ [" + row + ", " + col + "]";
    }
    
 }

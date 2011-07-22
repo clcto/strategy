@@ -19,7 +19,6 @@ public class GameMap extends View
 
    private Matrix transformation = new Matrix();
    
-   private Tile selected;
    private Context context;
 
    public GameMap( Context context, int num_row, int num_col )
@@ -134,20 +133,22 @@ public class GameMap extends View
    {
       Tile[] surrounding = new Tile[6]; // hexagons have 6 neighbors
 
-      surrounding[0] = board[ row - 1 ][ col     ];
-      surrounding[1] = board[ row + 1 ][ col     ];
-      surrounding[2] = board[ row     ][ col - 1 ];
-      surrounding[3] = board[ row     ][ col + 1 ];
+      surrounding[1] = board[ row - 1 ][ col     ];
+      surrounding[4] = board[ row + 1 ][ col     ];
 
       if( col % 2 == 0 )
       {
-         surrounding[4] = board[ row + 1 ][ col - 1 ];
+         surrounding[2] = board[ row     ][ col - 1 ];
+         surrounding[0] = board[ row     ][ col + 1 ];
+         surrounding[3] = board[ row + 1 ][ col - 1 ];
          surrounding[5] = board[ row + 1 ][ col + 1 ];
       }
       else
       {
-         surrounding[4] = board[ row - 1 ][ col - 1 ];
-         surrounding[5] = board[ row - 1 ][ col + 1 ];
+         surrounding[3] = board[ row     ][ col - 1 ];
+         surrounding[5] = board[ row     ][ col + 1 ];
+         surrounding[2] = board[ row - 1 ][ col - 1 ];
+         surrounding[0] = board[ row - 1 ][ col + 1 ];
       }
 
       return surrounding;
@@ -156,20 +157,54 @@ public class GameMap extends View
    private class TouchListener extends 
                         GestureDetector.SimpleOnGestureListener
    {
+      private Tile start, dest;
+      private List<Tile> path = new ArrayList<Tile>(); // avoid the null pointer check
+      private HashSet<Tile> moves;
       @Override
       public boolean onSingleTapConfirmed( MotionEvent e )
       {
-         selected = getTileByPixel( e.getX(), e.getY() );
+         Tile clicked = getTileByPixel( e.getX(), e.getY() );
+         if( clicked == null ) return true;
+
+         if( start == null )
+         {
+            // clear old path
+            for( Tile t : path )
+               t.setFill( 0 ); 
+
+            start = clicked;
+            moves = start.getPossibleMoves();
+            for( Tile t : moves )
+               t.setFill( 0x77FFFFFF );
+            start.setFill( 0x8811CCCC );
+         }
+         else
+         {
+            for( Tile t : moves )
+               t.setFill( 0 );
+
+            dest = clicked;
+            dest.setFill( 0x88CC1111 );
+
+            path = start.findPath( dest );
+            for( Tile t : path )
+               t.setFill( 0x88000011 );
+
+            start = null;
+         }
+            
+
+/*
          if( selected != null )
          {
-            selected.setFill( 0x99000000 );
-            /*
-            HashSet<Tile> moves = selected.getPossibleMoves( 4 );
-            //Tile[] moves = getSurrounding( selected.getRow(), selected.getCol() );
-            for( Tile t : moves )
-               t.setFill( 0x55CC1111 );
-               */
+            selected.setFill( 0x77000000 );
+            //HashSet<Tile> moves = selected.getPossibleMoves( 4 );
+            Tile[] moves = getSurrounding( selected.getRow(), selected.getCol() );
+            moves[0].setFill( 0x88CC11CC );
+            moves[2].setFill( 0x88CC11CC );
+            moves[4].setFill( 0x88CC11CC );
          }
+*/
          
          invalidate();
           
